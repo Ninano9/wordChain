@@ -1,0 +1,932 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, maximum-scale=1"
+    />
+    <title>국립국어원 끝말잇기</title>
+    <meta
+      name="description"
+      content="국립국어원 표준국어대사전 데이터로 즐기는 오프라인 끝말잇기"
+    />
+    <style>
+      :root {
+        color-scheme: light dark;
+        --bg: #020617;
+        --panel: rgba(15, 23, 42, 0.85);
+        --text: #f8fafc;
+        --muted: #94a3b8;
+        --accent: #38bdf8;
+        --accent-strong: #0ea5e9;
+        --danger: #f87171;
+        --success: #4ade80;
+        font-family: "Pretendard", "Noto Sans KR", system-ui, -apple-system,
+          BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background: radial-gradient(circle at top, #1e293b, #000814 65%);
+        color: var(--text);
+        padding: 2rem 1rem 4rem;
+      }
+
+      a {
+        color: var(--accent);
+      }
+
+      .app-shell {
+        max-width: 960px;
+        margin: 0 auto;
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+      }
+
+      .hero {
+        text-align: center;
+      }
+
+      .hero h1 {
+        margin-bottom: 0.5rem;
+        font-size: clamp(1.8rem, 3vw, 2.5rem);
+      }
+
+      .hero p {
+        margin: 0;
+        color: var(--muted);
+        line-height: 1.6;
+      }
+
+      .panel {
+        background: var(--panel);
+        border: 1px solid rgba(148, 163, 184, 0.25);
+        border-radius: 20px;
+        padding: 1.75rem;
+        backdrop-filter: blur(18px);
+        box-shadow: 0 30px 55px rgba(2, 6, 23, 0.55);
+      }
+
+      .panel h2 {
+        margin: 0 0 1rem;
+        font-size: 1.35rem;
+      }
+
+      .status-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 1rem;
+      }
+
+      .status-card {
+        border-radius: 16px;
+        padding: 1rem;
+        background: rgba(56, 189, 248, 0.08);
+        border: 1px solid rgba(56, 189, 248, 0.25);
+      }
+
+      .status-card .label {
+        font-size: 0.85rem;
+        color: var(--muted);
+      }
+
+      .status-card strong {
+        display: block;
+        font-size: 1.8rem;
+        margin-top: 0.2rem;
+      }
+
+      .status-card small {
+        display: block;
+        margin-top: 0.45rem;
+        color: var(--muted);
+      }
+
+      .loading {
+        padding: 0.9rem 1.2rem;
+        border-radius: 14px;
+        background: rgba(248, 250, 252, 0.08);
+        border: 1px dashed rgba(148, 163, 184, 0.5);
+        font-weight: 600;
+        margin-bottom: 1.25rem;
+      }
+
+      .badge {
+        border-radius: 999px;
+        padding: 0.2rem 0.8rem;
+        font-size: 0.8rem;
+        font-weight: 600;
+      }
+
+      .badge.good {
+        background: rgba(74, 222, 128, 0.18);
+        color: var(--success);
+      }
+
+      .badge.warn {
+        background: rgba(248, 113, 113, 0.15);
+        color: var(--danger);
+      }
+
+      .input-row {
+        display: grid;
+        gap: 0.75rem;
+        margin-bottom: 1rem;
+      }
+
+      .word-input {
+        display: flex;
+        gap: 0.75rem;
+      }
+
+      label {
+        font-weight: 600;
+      }
+
+      input {
+        flex: 1;
+        border-radius: 12px;
+        border: 1px solid rgba(148, 163, 184, 0.35);
+        padding: 0.95rem 1rem;
+        background: rgba(15, 23, 42, 0.6);
+        color: var(--text);
+        font: inherit;
+        font-size: 1.2rem;
+      }
+
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+      }
+
+      button {
+        border: none;
+        border-radius: 999px;
+        padding: 0.9rem 1.4rem;
+        font-weight: 700;
+        cursor: pointer;
+        font: inherit;
+        transition: transform 0.2s ease, opacity 0.2s ease;
+      }
+
+      button.primary {
+        background: linear-gradient(120deg, var(--accent), var(--accent-strong));
+        color: #001220;
+        box-shadow: 0 18px 30px rgba(14, 165, 233, 0.35);
+      }
+
+      button.surface {
+        background: rgba(148, 163, 184, 0.12);
+        border: 1px solid rgba(148, 163, 184, 0.2);
+        color: var(--text);
+      }
+
+      button:disabled {
+        opacity: 0.45;
+        cursor: not-allowed;
+        transform: none;
+      }
+
+      .chain-list {
+        list-style: none;
+        padding: 0;
+        margin: 1.5rem 0 0;
+        display: flex;
+        flex-direction: column;
+        gap: 0.9rem;
+      }
+
+      .chain-item {
+        border-radius: 16px;
+        border: 1px solid rgba(148, 163, 184, 0.25);
+        padding: 0.9rem 1rem;
+        background: rgba(15, 23, 42, 0.65);
+        display: flex;
+        gap: 0.9rem;
+      }
+
+      .chain-index {
+        min-width: 32px;
+        font-weight: 700;
+        color: var(--muted);
+      }
+
+      .logs {
+        min-height: 48px;
+        margin-top: 1.5rem;
+        padding: 1rem;
+        border-radius: 14px;
+        background: rgba(2, 6, 23, 0.6);
+        border: 1px dashed rgba(148, 163, 184, 0.45);
+        color: var(--muted);
+      }
+
+      .muted {
+        color: var(--muted);
+        line-height: 1.5;
+      }
+
+      .hidden {
+        display: none !important;
+      }
+
+      @media (max-width: 640px) {
+        body {
+          padding: 1.5rem 0.75rem 3rem;
+        }
+
+        .panel {
+          padding: 1.35rem;
+        }
+
+        .word-input {
+          flex-direction: column;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="app-shell">
+      <section class="hero">
+        <p class="badge good">국립국어원 표준국어대사전 로컬 데이터셋</p>
+        <h1>HTML만으로 즐기는 끝말잇기</h1>
+        <p>
+          43만여 개의 사전 표제어를 HTML에 그대로 내장했습니다. 추가 인증 없이
+          누구나 즉시 끝말잇기를 즐기고 Netlify에 그대로 업로드할 수 있습니다.
+        </p>
+      </section>
+
+      <section class="panel" id="dict-panel">
+        <h2>사전 로딩 상태</h2>
+        <div class="loading" id="loadingBanner">
+          국립국어원 표준국어대사전 데이터를 불러오는 중입니다. (최초 2~3초)
+        </div>
+        <div class="status-grid">
+          <div class="status-card">
+            <span class="label">단어 수</span>
+            <strong id="totalWords">-</strong>
+            <small>표준국어대사전 표제어 기준</small>
+          </div>
+          <div class="status-card">
+            <span class="label">사용 가능한 첫 글자</span>
+            <strong id="alphabetCount">-</strong>
+            <small>한글 초성 기준</small>
+          </div>
+          <div class="status-card">
+            <span class="label">데이터 생성</span>
+            <strong id="generatedAt">-</strong>
+            <small>UTC 기준</small>
+          </div>
+        </div>
+        <p class="muted">
+          이 데이터는 국립국어원 표준국어대사전 공개 XML(크리에이티브 커먼즈
+          BY-SA 2.0 KR)을 변환한 것입니다. 브라우저 메모리에만 상주하며 인터넷
+          연결 없이도 작동합니다.
+        </p>
+      </section>
+
+      <section class="panel" id="game-panel" aria-live="polite">
+        <h2>끝말잇기 진행</h2>
+        <div class="status-grid">
+          <div class="status-card">
+            <span class="label">라운드</span>
+            <strong id="roundValue">1</strong>
+          </div>
+          <div class="status-card">
+            <span class="label">체인 길이</span>
+            <strong id="chainValue">0</strong>
+          </div>
+          <div class="status-card">
+            <span class="label">다음 첫 글자</span>
+            <strong id="nextCharValue">-</strong>
+          </div>
+        </div>
+
+        <div class="input-row">
+          <label for="wordInput">이번에 말할 단어</label>
+          <div class="word-input">
+            <input
+              id="wordInput"
+              placeholder="예: 끝말잇기"
+              autocomplete="off"
+              spellcheck="false"
+              maxlength="30"
+              disabled
+            />
+            <button class="primary" id="submitWordBtn" disabled>등록</button>
+          </div>
+        </div>
+
+        <div class="actions">
+          <button class="surface" id="hintBtn" disabled>힌트 보기</button>
+          <button class="surface" id="resetBtn">새 게임</button>
+          <button class="surface" id="copyBtn" disabled>체인 복사</button>
+        </div>
+
+        <ul class="chain-list" id="chainList" aria-live="polite"></ul>
+
+        <div class="logs" id="logs" role="status">
+          사전을 로딩하는 동안 잠시만 기다려 주세요.
+        </div>
+      </section>
+
+      <section class="panel info-panel">
+        <h2>작동 방식</h2>
+        <ol class="muted">
+          <li>국립국어원 표준국어대사전 XML을 변환해 HTML에 직접 내장합니다.</li>
+          <li>브라우저가 데이터를 복원하고, 끝말잇기 규칙을 즉시 검증합니다.</li>
+          <li>힌트 기능은 같은 글자로 시작하는 단어를 오프라인에서 찾아줍니다.</li>
+          <li>결과는 클립보드로 복사할 수 있으며 서버 저장을 하지 않습니다.</li>
+        </ol>
+      </section>
+    </main>
+
+    <script>
+      const DICTIONARY_ARCHIVE = "%%DICTIONARY_DATA%%";
+    </script>
+    <script>
+      /*!
+       * LZ-String (c) 2013 pieroxy <pieroxy@pieroxy.net>
+       * Released under the WTFPL license.
+       */
+      const LZString = (function () {
+        const f = String.fromCharCode;
+        const keyStrBase64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=";
+        const getBaseValue = (alphabet, character) => {
+          if (!getBaseValue.dictionary) {
+            getBaseValue.dictionary = {};
+            for (let i = 0; i < alphabet.length; i++) {
+              getBaseValue.dictionary[alphabet.charAt(i)] = i;
+            }
+          }
+          return getBaseValue.dictionary[character];
+        };
+        const _compress = function (uncompressed, bitsPerChar, getCharFromInt) {
+          if (uncompressed == null) return "";
+          let i,
+            value,
+            context_dictionary = {},
+            context_dictionaryToCreate = {},
+            context_c = "",
+            context_wc = "",
+            context_w = "",
+            context_enlargeIn = 2,
+            context_dictSize = 3,
+            context_numBits = 2,
+            context_data = [],
+            context_data_val = 0,
+            context_data_position = 0,
+            ii;
+          for (ii = 0; ii < uncompressed.length; ii += 1) {
+            context_c = uncompressed.charAt(ii);
+            if (!Object.prototype.hasOwnProperty.call(context_dictionary, context_c)) {
+              context_dictionary[context_c] = context_dictSize++;
+              context_dictionaryToCreate[context_c] = true;
+            }
+            context_wc = context_w + context_c;
+            if (Object.prototype.hasOwnProperty.call(context_dictionary, context_wc)) {
+              context_w = context_wc;
+            } else {
+              if (Object.prototype.hasOwnProperty.call(context_dictionaryToCreate, context_w)) {
+                if (context_w.charCodeAt(0) < 256) {
+                  for (i = 0; i < context_numBits; i++) {
+                    context_data_val = context_data_val << 1;
+                    if (context_data_position == bitsPerChar - 1) {
+                      context_data_position = 0;
+                      context_data.push(getCharFromInt(context_data_val));
+                      context_data_val = 0;
+                    } else {
+                      context_data_position++;
+                    }
+                  }
+                  value = context_w.charCodeAt(0);
+                  for (i = 0; i < 8; i++) {
+                    context_data_val = (context_data_val << 1) | (value & 1);
+                    if (context_data_position == bitsPerChar - 1) {
+                      context_data_position = 0;
+                      context_data.push(getCharFromInt(context_data_val));
+                      context_data_val = 0;
+                    } else {
+                      context_data_position++;
+                    }
+                    value = value >> 1;
+                  }
+                } else {
+                  value = 1;
+                  for (i = 0; i < context_numBits; i++) {
+                    context_data_val = (context_data_val << 1) | value;
+                    if (context_data_position == bitsPerChar - 1) {
+                      context_data_position = 0;
+                      context_data.push(getCharFromInt(context_data_val));
+                      context_data_val = 0;
+                    } else {
+                      context_data_position++;
+                    }
+                    value = 0;
+                  }
+                  value = context_w.charCodeAt(0);
+                  for (i = 0; i < 16; i++) {
+                    context_data_val = (context_data_val << 1) | (value & 1);
+                    if (context_data_position == bitsPerChar - 1) {
+                      context_data_position = 0;
+                      context_data.push(getCharFromInt(context_data_val));
+                      context_data_val = 0;
+                    } else {
+                      context_data_position++;
+                    }
+                    value = value >> 1;
+                  }
+                }
+                context_enlargeIn--;
+                if (context_enlargeIn == 0) {
+                  context_enlargeIn = Math.pow(2, context_numBits);
+                  context_numBits++;
+                }
+                delete context_dictionaryToCreate[context_w];
+              } else {
+                value = context_dictionary[context_w];
+                for (i = 0; i < context_numBits; i++) {
+                  context_data_val = (context_data_val << 1) | (value & 1);
+                  if (context_data_position == bitsPerChar - 1) {
+                    context_data_position = 0;
+                    context_data.push(getCharFromInt(context_data_val));
+                    context_data_val = 0;
+                  } else {
+                    context_data_position++;
+                  }
+                  value = value >> 1;
+                }
+              }
+              context_enlargeIn--;
+              if (context_enlargeIn == 0) {
+                context_enlargeIn = Math.pow(2, context_numBits);
+                context_numBits++;
+              }
+              context_dictionary[context_wc] = context_dictSize++;
+              context_w = String(context_c);
+            }
+          }
+          if (context_w !== "") {
+            if (Object.prototype.hasOwnProperty.call(context_dictionaryToCreate, context_w)) {
+              if (context_w.charCodeAt(0) < 256) {
+                for (i = 0; i < context_numBits; i++) {
+                  context_data_val = context_data_val << 1;
+                  if (context_data_position == bitsPerChar - 1) {
+                    context_data_position = 0;
+                    context_data.push(getCharFromInt(context_data_val));
+                    context_data_val = 0;
+                  } else {
+                    context_data_position++;
+                  }
+                }
+                value = context_w.charCodeAt(0);
+                for (i = 0; i < 8; i++) {
+                  context_data_val = (context_data_val << 1) | (value & 1);
+                  if (context_data_position == bitsPerChar - 1) {
+                    context_data_position = 0;
+                    context_data.push(getCharFromInt(context_data_val));
+                    context_data_val = 0;
+                  } else {
+                    context_data_position++;
+                  }
+                  value = value >> 1;
+                }
+              } else {
+                value = 1;
+                for (i = 0; i < context_numBits; i++) {
+                  context_data_val = (context_data_val << 1) | value;
+                  if (context_data_position == bitsPerChar - 1) {
+                    context_data_position = 0;
+                    context_data.push(getCharFromInt(context_data_val));
+                    context_data_val = 0;
+                  } else {
+                    context_data_position++;
+                  }
+                  value = 0;
+                }
+                value = context_w.charCodeAt(0);
+                for (i = 0; i < 16; i++) {
+                  context_data_val = (context_data_val << 1) | (value & 1);
+                  if (context_data_position == bitsPerChar - 1) {
+                    context_data_position = 0;
+                    context_data.push(getCharFromInt(context_data_val));
+                    context_data_val = 0;
+                  } else {
+                    context_data_position++;
+                  }
+                  value = value >> 1;
+                }
+              }
+              context_enlargeIn--;
+              if (context_enlargeIn == 0) {
+                context_enlargeIn = Math.pow(2, context_numBits);
+                context_numBits++;
+              }
+              delete context_dictionaryToCreate[context_w];
+            } else {
+              value = context_dictionary[context_w];
+              for (i = 0; i < context_numBits; i++) {
+                context_data_val = (context_data_val << 1) | (value & 1);
+                if (context_data_position == bitsPerChar - 1) {
+                  context_data_position = 0;
+                  context_data.push(getCharFromInt(context_data_val));
+                  context_data_val = 0;
+                } else {
+                  context_data_position++;
+                }
+                value = value >> 1;
+              }
+            }
+            context_enlargeIn--;
+            if (context_enlargeIn == 0) {
+              context_enlargeIn = Math.pow(2, context_numBits);
+              context_numBits++;
+            }
+          }
+          value = 2;
+          for (i = 0; i < context_numBits; i++) {
+            context_data_val = (context_data_val << 1) | (value & 1);
+            if (context_data_position == bitsPerChar - 1) {
+              context_data_position = 0;
+              context_data.push(getCharFromInt(context_data_val));
+              context_data_val = 0;
+            } else {
+              context_data_position++;
+            }
+            value = value >> 1;
+          }
+          while (true) {
+            context_data_val = context_data_val << 1;
+            if (context_data_position == bitsPerChar - 1) {
+              context_data.push(getCharFromInt(context_data_val));
+              break;
+            } else context_data_position++;
+          }
+          return context_data.join("");
+        };
+        const _decompress = function (length, resetValue, getNextValue) {
+          const dictionary = [];
+          let next,
+            enlargeIn = 4,
+            dictSize = 4,
+            numBits = 3,
+            entry = "",
+            result = [],
+            i,
+            w,
+            bits,
+            resb,
+            maxpower,
+            power,
+            c,
+            data = { value: getNextValue(0), position: resetValue, index: 1 };
+          for (i = 0; i < resetValue; i += 1) {
+            dictionary[i] = i;
+          }
+          bits = 0;
+          maxpower = Math.pow(2, 2);
+          power = 1;
+          while (power != maxpower) {
+            resb = data.value & data.position;
+            data.position >>= 1;
+            if (data.position == 0) {
+              data.position = resetValue;
+              data.value = getNextValue(data.index++);
+            }
+            bits |= (resb > 0 ? 1 : 0) * power;
+            power <<= 1;
+          }
+          switch ((next = bits)) {
+            case 0:
+              bits = 0;
+              maxpower = Math.pow(2, 8);
+              power = 1;
+              while (power != maxpower) {
+                resb = data.value & data.position;
+                data.position >>= 1;
+                if (data.position == 0) {
+                  data.position = resetValue;
+                  data.value = getNextValue(data.index++);
+                }
+                bits |= (resb > 0 ? 1 : 0) * power;
+                power <<= 1;
+              }
+              c = f(bits);
+              break;
+            case 1:
+              bits = 0;
+              maxpower = Math.pow(2, 16);
+              power = 1;
+              while (power != maxpower) {
+                resb = data.value & data.position;
+                data.position >>= 1;
+                if (data.position == 0) {
+                  data.position = resetValue;
+                  data.value = getNextValue(data.index++);
+                }
+                bits |= (resb > 0 ? 1 : 0) * power;
+                power <<= 1;
+              }
+              c = f(bits);
+              break;
+            case 2:
+              return "";
+          }
+          dictionary[3] = c;
+          w = c;
+          result.push(c);
+          while (true) {
+            if (data.index > length) return "";
+            bits = 0;
+            maxpower = Math.pow(2, numBits);
+            power = 1;
+            while (power != maxpower) {
+              resb = data.value & data.position;
+              data.position >>= 1;
+              if (data.position == 0) {
+                data.position = resetValue;
+                data.value = getNextValue(data.index++);
+              }
+              bits |= (resb > 0 ? 1 : 0) * power;
+              power <<= 1;
+            }
+            switch ((c = bits)) {
+              case 0:
+                bits = 0;
+                maxpower = Math.pow(2, 8);
+                power = 1;
+                while (power != maxpower) {
+                  resb = data.value & data.position;
+                  data.position >>= 1;
+                  if (data.position == 0) {
+                    data.position = resetValue;
+                    data.value = getNextValue(data.index++);
+                  }
+                  bits |= (resb > 0 ? 1 : 0) * power;
+                  power <<= 1;
+                }
+                dictionary[dictSize++] = f(bits);
+                c = dictSize - 1;
+                enlargeIn--;
+                break;
+              case 1:
+                bits = 0;
+                maxpower = Math.pow(2, 16);
+                power = 1;
+                while (power != maxpower) {
+                  resb = data.value & data.position;
+                  data.position >>= 1;
+                  if (data.position == 0) {
+                    data.position = resetValue;
+                    data.value = getNextValue(data.index++);
+                  }
+                  bits |= (resb > 0 ? 1 : 0) * power;
+                  power <<= 1;
+                }
+                dictionary[dictSize++] = f(bits);
+                c = dictSize - 1;
+                enlargeIn--;
+                break;
+              case 2:
+                return result.join("");
+            }
+            if (enlargeIn == 0) {
+              enlargeIn = Math.pow(2, numBits);
+              numBits++;
+            }
+            if (dictionary[c]) {
+              entry = dictionary[c];
+            } else {
+              if (c === dictSize) {
+                entry = w + w.charAt(0);
+              } else {
+                return "";
+              }
+            }
+            result.push(entry);
+            dictionary[dictSize++] = w + entry.charAt(0);
+            enlargeIn--;
+            w = entry;
+            if (enlargeIn == 0) {
+              enlargeIn = Math.pow(2, numBits);
+              numBits++;
+            }
+          }
+        };
+        return {
+          decompressFromBase64: function (input) {
+            if (input == null) return "";
+            if (input === "") return null;
+            return _decompress(input.length, 32, function (index) {
+              return getBaseValue(keyStrBase64, input.charAt(index));
+            });
+          },
+        };
+      })();
+    </script>
+    <script>
+      (() => {
+        const selectors = {
+          loadingBanner: document.querySelector("#loadingBanner"),
+          totalWords: document.querySelector("#totalWords"),
+          alphabetCount: document.querySelector("#alphabetCount"),
+          generatedAt: document.querySelector("#generatedAt"),
+          wordInput: document.querySelector("#wordInput"),
+          submitWordBtn: document.querySelector("#submitWordBtn"),
+          hintBtn: document.querySelector("#hintBtn"),
+          resetBtn: document.querySelector("#resetBtn"),
+          copyBtn: document.querySelector("#copyBtn"),
+          chainList: document.querySelector("#chainList"),
+          logs: document.querySelector("#logs"),
+          roundValue: document.querySelector("#roundValue"),
+          chainValue: document.querySelector("#chainValue"),
+          nextCharValue: document.querySelector("#nextCharValue"),
+        };
+
+        const state = {
+          words: new Map(),
+          indexByHead: new Map(),
+          chain: [],
+          isReady: false,
+        };
+
+        const sanitizeWord = (raw = "") =>
+          raw.replace(/[^가-힣]/g, "").trim();
+
+        const updateStats = (meta) => {
+          selectors.totalWords.textContent = meta.total.toLocaleString("ko-KR");
+          selectors.alphabetCount.textContent = state.indexByHead.size;
+          selectors.generatedAt.textContent = new Date(
+            meta.generatedAt
+          ).toLocaleDateString("ko-KR", {
+            year: "numeric",
+            month: "2-digit",
+            day: "2-digit",
+          });
+        };
+
+        const loadDictionary = () => {
+          try {
+            const raw = LZString.decompressFromBase64(DICTIONARY_ARCHIVE);
+            if (!raw) throw new Error("사전을 복원할 수 없습니다.");
+            const payload = JSON.parse(raw);
+            payload.words.forEach((entry) => {
+              state.words.set(entry.w, entry.d || "");
+              const head = entry.w[0];
+              if (!head) return;
+              if (!state.indexByHead.has(head)) {
+                state.indexByHead.set(head, []);
+              }
+              state.indexByHead.get(head).push(entry.w);
+            });
+            state.isReady = true;
+            updateStats(payload);
+            selectors.loadingBanner.classList.add("hidden");
+            selectors.wordInput.disabled = false;
+            selectors.submitWordBtn.disabled = false;
+            selectors.hintBtn.disabled = false;
+            selectors.copyBtn.disabled = false;
+            setLog(
+              `사전 ${payload.total.toLocaleString("ko-KR")}개 단어 로딩 완료! 새 게임을 시작해 보세요.`
+            );
+          } catch (error) {
+            selectors.loadingBanner.classList.remove("hidden");
+            selectors.loadingBanner.textContent =
+              error.message || "사전 로딩에 실패했습니다.";
+            setLog("사전 로딩에 실패했습니다. 새로고침 후 다시 시도해 주세요.");
+          }
+        };
+
+        const getNextChar = () => {
+          if (!state.chain.length) return "";
+          return state.chain[state.chain.length - 1].word.slice(-1);
+        };
+
+        const renderChain = () => {
+          selectors.chainList.innerHTML = "";
+          state.chain.forEach((entry, index) => {
+            const li = document.createElement("li");
+            li.className = "chain-item";
+
+            const idx = document.createElement("div");
+            idx.className = "chain-index";
+            idx.textContent = index + 1;
+
+            const info = document.createElement("div");
+            const definition = state.words.get(entry.word) || "의미 정보 없음";
+            info.innerHTML = `<strong>${entry.word}</strong><small class="muted">${definition}</small>`;
+
+            li.appendChild(idx);
+            li.appendChild(info);
+            selectors.chainList.appendChild(li);
+          });
+
+          selectors.roundValue.textContent = state.chain.length + 1;
+          selectors.chainValue.textContent = state.chain.length;
+          selectors.nextCharValue.textContent = getNextChar() || "-";
+        };
+
+        const setLog = (message) => {
+          selectors.logs.innerHTML = `<strong>${message}</strong>`;
+        };
+
+        const handleSubmit = () => {
+          if (!state.isReady) {
+            return setLog("사전이 준비되면 게임을 시작할 수 있습니다.");
+          }
+
+          const raw = selectors.wordInput.value.trim();
+          const word = sanitizeWord(raw);
+          selectors.wordInput.value = "";
+
+          if (!word) {
+            setLog("한글 단어만 입력할 수 있습니다.");
+            return;
+          }
+          const nextChar = getNextChar();
+          if (nextChar && word[0] !== nextChar) {
+            setLog(`'${nextChar}'(으)로 시작하는 단어를 입력해야 합니다.`);
+            return;
+          }
+          if (!state.words.has(word)) {
+            setLog("사전에 등록되지 않은 단어입니다.");
+            return;
+          }
+          if (state.chain.find((entry) => entry.word === word)) {
+            setLog("이미 사용한 단어입니다.");
+            return;
+          }
+
+          state.chain.push({ word });
+          renderChain();
+          setLog(`"${word}" 등록 완료! 다음 사람은 '${getNextChar() || "-"}'로 시작하세요.`);
+        };
+
+        const handleHint = () => {
+          if (!state.isReady) return;
+          const nextChar = getNextChar();
+          if (!nextChar) {
+            setLog("첫 단어를 입력하면 힌트를 받을 수 있습니다.");
+            return;
+          }
+          const candidates = state.indexByHead.get(nextChar) || [];
+          const unused = candidates.filter(
+            (word) => !state.chain.find((entry) => entry.word === word)
+          );
+          if (!unused.length) {
+            setLog(`'${nextChar}'로 시작하는 새 단어를 찾지 못했습니다.`);
+            return;
+          }
+          const suggestions = unused.slice(0, 5).join(", ");
+          setLog(`힌트: ${suggestions}`);
+        };
+
+        const handleCopy = async () => {
+          if (!state.chain.length) {
+            setLog("복사할 체인이 없습니다.");
+            return;
+          }
+          const text = state.chain
+            .map((entry, index) => {
+              const definition = state.words.get(entry.word) || "";
+              return `${index + 1}. ${entry.word}${
+                definition ? " - " + definition : ""
+              }`;
+            })
+            .join("\n");
+          try {
+            await navigator.clipboard.writeText(text);
+            setLog("체인이 클립보드에 복사되었습니다.");
+          } catch (error) {
+            setLog("브라우저가 복사를 차단했습니다. 직접 선택해 주세요.");
+          }
+        };
+
+        const handleReset = () => {
+          state.chain = [];
+          renderChain();
+          setLog("새 게임을 시작했습니다.");
+        };
+
+        selectors.submitWordBtn.addEventListener("click", handleSubmit);
+        selectors.wordInput.addEventListener("keyup", (event) => {
+          if (event.key === "Enter") handleSubmit();
+        });
+        selectors.hintBtn.addEventListener("click", handleHint);
+        selectors.copyBtn.addEventListener("click", handleCopy);
+        selectors.resetBtn.addEventListener("click", handleReset);
+
+        setTimeout(loadDictionary, 30);
+      })();
+    </script>
+  </body>
+</html>
+

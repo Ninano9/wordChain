@@ -1,0 +1,18 @@
+{
+  "name": "wordchain",
+  "version": "1.0.0",
+  "description": "국립국어원 표준국어대사전 오픈 API를 호출해 단어를 검증하고, 끝말잇기 체인을 웹에서 바로 즐길 수 있는 정적 사이트입니다. 별도의 빌드 없이 `index.html` 파일 하나만 Netlify에 업로드하면 언제든 활용할 수 있습니다.",
+  "main": "index.js",
+  "scripts": {
+    "build:dict": "node scripts/build-dataset.mjs",
+    "build:index": "node scripts/embed-dataset.mjs",
+    "build": "npm run build:dict && npm run build:index"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "fast-xml-parser": "^5.3.2",
+    "lz-string": "^1.5.0"
+  }
+}
